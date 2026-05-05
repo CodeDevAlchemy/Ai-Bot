@@ -389,7 +389,7 @@ Never make up restaurant names. Always use map_search for any food/location requ
           ? '📍 I need your location to find nearby restaurants. Please allow location access in your browser and try again.'
           : err.message || 'Something went wrong. Please try again.';
       
-      pushBot(withUser, <div className="error-content"><span className="error-pulse-icon">⚠️</span> {msg}</div>, []);
+      pushBot(withUser, `⚠️ ${msg}`, []);
     } finally {
       setIsTyping(false);
     }
