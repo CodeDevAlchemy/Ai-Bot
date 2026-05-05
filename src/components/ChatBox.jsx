@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import RestaurantCard from './RestaurantCard';
+import RestaurantMap from './RestaurantMap';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 
@@ -293,8 +294,8 @@ const ChatBox = ({ userName, activeChatId, initialMessages, onUpdateSession }) =
   }, [activeChatId]);
 
   // ── Push a bot message and persist ─────────────────────────────────────────
-  const pushBot = (currentMsgs, text, cards = [], chatTitle = null) => {
-    const updated = [...currentMsgs, { id: Date.now() + 1, sender: 'bot', text, cards }];
+  const pushBot = (currentMsgs, text, cards = [], chatTitle = null, mapData = null) => {
+    const updated = [...currentMsgs, { id: Date.now() + 1, sender: 'bot', text, cards, mapData }];
     setMessages(updated);
     onUpdateSession(activeChatId, updated, chatTitle);
     return updated;
@@ -344,7 +345,13 @@ const ChatBox = ({ userName, activeChatId, initialMessages, onUpdateSession }) =
           }
         }
 
-        const final = [...withUser, { id: Date.now() + 2, sender: 'bot', text: resultMsg, cards: restaurants }];
+        const final = [...withUser, { 
+          id: Date.now() + 2, 
+          sender: 'bot', 
+          text: resultMsg, 
+          cards: restaurants,
+          mapData: restaurants.length > 0 ? { lat, lon, restaurants } : null 
+        }];
         setMessages(final);
         onUpdateSession(activeChatId, final, chatTitle);
 
@@ -386,7 +393,7 @@ Never make up restaurant names. Always use map_search for any food/location requ
                    resultMsg = `Here are the best "${keyword}" spots near you! 📍`;
                 }
               }
-              pushBot(withUser, resultMsg, restaurants, chatTitle);
+              pushBot(withUser, resultMsg, restaurants, chatTitle, restaurants.length > 0 ? { lat, lon, restaurants } : null);
             }
           }
         } catch (e) {
@@ -452,6 +459,9 @@ Never make up restaurant names. Always use map_search for any food/location requ
                 <div className="cards-container">
                   {m.cards.map((c) => <RestaurantCard key={c.id} {...c} />)}
                 </div>
+              )}
+              {m.mapData && (
+                <RestaurantMap userLocation={{ lat: m.mapData.lat, lon: m.mapData.lon }} restaurants={m.mapData.restaurants} />
               )}
             </div>
           ))
