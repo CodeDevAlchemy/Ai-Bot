@@ -156,15 +156,13 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
     .split(' ')
     .filter(w => w.length > 2 && !['restaurant','food','eat','eating'].includes(w));
 
-  const isSpecific = terms.length > 0;
-  let queryBody = '';
-
   if (isSpecific) {
-    const regex = terms[0];
+    const fullRegex = terms.join('.*');
     queryBody = `
-      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli"]["name"~"${regex}",i](around:${radius},${lat},${lon});
-      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli"]["cuisine"~"${regex}",i](around:${radius},${lat},${lon});
-      nwr["shop"~"bakery|confectionery|pastry|deli"]["name"~"${regex}",i](around:${radius},${lat},${lon});
+      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli|diner"]["name"~"${fullRegex}",i](around:${radius},${lat},${lon});
+      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli|diner"]["cuisine"~"${fullRegex}",i](around:${radius},${lat},${lon});
+      nwr["shop"~"bakery|confectionery|pastry|deli|food"]["name"~"${fullRegex}",i](around:${radius},${lat},${lon});
+      nwr["name"~"${fullRegex}",i](around:${radius},${lat},${lon});
     `;
   } else {
     queryBody = `
@@ -181,7 +179,7 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
 
     // Fallback: fetch all nearby + filter locally if no specific results found
     if (results.length === 0 && isSpecific) {
-      const fb = `[out:json][timeout:15];(nwr["amenity"~"restaurant|cafe|fast_food|bakery|ice_cream|bar|pub"](around:${radius},${lat},${lon});nwr["shop"~"bakery|deli"](around:${radius},${lat},${lon}););out center 150;`;
+      const fb = `[out:json][timeout:15];(nwr["amenity"~"restaurant|cafe|fast_food|bakery|ice_cream|bar|pub|diner"](around:${radius},${lat},${lon});nwr["shop"~"bakery|deli|food"](around:${radius},${lat},${lon}););out center 150;`;
       const fbData = await fetchWithRetry(fb);
       const fbElements = fbData.elements || [];
       results = fbElements.filter(el => {
@@ -189,7 +187,11 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
         const c = (el.tags?.cuisine || '').toLowerCase();
         return terms.some(t => n.includes(t) || c.includes(t));
       });
-      if (results.length === 0) results = fbElements.filter(el => el.tags?.name).slice(0, 5);
+      if (results.length === 0) {
+        // If still no matches for terms, don't just show generic ones
+        // Only show generic ones if the user didn't specify a name
+        return []; 
+      }
     }
 
     return results
