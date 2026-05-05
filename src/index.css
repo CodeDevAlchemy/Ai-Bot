@@ -447,13 +447,13 @@ body {
 }
 
 .message-bubble {
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1.25rem;
   border-radius: 18px;
   line-height: 1.5;
   font-size: 0.95rem;
   box-shadow: var(--glass-shadow);
-  /* Text bubbles stay constrained — cards below can be wider */
-  max-width: 75%;
+  /* Make bubbles wider to reduce vertical height */
+  max-width: 95%;
 }
 
 .message-wrapper.user .message-bubble {
@@ -530,7 +530,7 @@ body {
 
 .card-image-wrap {
   position: relative;
-  height: 160px;
+  height: 130px;
   overflow: hidden;
 }
 
@@ -560,7 +560,7 @@ body {
 }
 
 .card-content {
-  padding: 1.25rem;
+  padding: 1rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -570,7 +570,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .card-header h4 {
@@ -593,8 +593,8 @@ body {
 .card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
 }
 
 .tag {
