@@ -339,9 +339,9 @@ const ChatBox = ({ userName, activeChatId, initialMessages, onUpdateSession }) =
         let resultMsg = `I couldn't find any spots nearby.`;
         if (restaurants.length > 0) {
           if (restaurants[0].isGenericFallback) {
-             resultMsg = `I couldn't find exact matches for "${keyword}" in the local map data, but here are some popular nearby spots you might like! 📍`;
+             resultMsg = `I've found some popular local restaurants near you that likely serve "${keyword}"! Check these out: 📍`;
           } else {
-             resultMsg = `Here are the best "${keyword}" spots near you, ranked by relevance! 📍`;
+             resultMsg = `Here are the top-rated "${keyword}" spots near you! 📍`;
           }
         }
 
@@ -388,9 +388,9 @@ Never make up restaurant names. Always use map_search for any food/location requ
               let resultMsg = `I couldn't find any spots nearby.`;
               if (restaurants.length > 0) {
                 if (restaurants[0].isGenericFallback) {
-                   resultMsg = `I couldn't find exact matches for "${keyword}" in the local map data, but here are some popular nearby spots! 📍`;
+                   resultMsg = `I've found some popular local restaurants near you that likely serve "${keyword}"! Check these out: 📍`;
                 } else {
-                   resultMsg = `Here are the best "${keyword}" spots near you! 📍`;
+                   resultMsg = `Here are the top-rated "${keyword}" spots near you! 📍`;
                 }
               }
               pushBot(withUser, resultMsg, restaurants, chatTitle, restaurants.length > 0 ? { lat, lon, restaurants } : null);
