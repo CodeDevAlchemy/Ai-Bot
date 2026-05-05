@@ -192,9 +192,11 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
         return terms.some(t => n.includes(t) || c.includes(t));
       });
       if (results.length === 0) {
-        // If still no matches for terms, don't just show generic ones
-        // Only show generic ones if the user didn't specify a name
-        return []; 
+        // If still no matches for terms, return generic nearby places but mark them as fallback
+        results = fbElements.filter(el => el.tags?.name).slice(0, 5).map(el => {
+          el.isGenericFallback = true;
+          return el;
+        });
       }
     }
 
@@ -215,12 +217,15 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
           match_score : score,
           tags        : [display, getFormattedDistance(lat, lon, elLat, elLon)],
           description : tags.description || `A popular local spot known for ${display}.`,
-          concierge_tip: score >= 90
-            ? 'Top local pick — highly rated by people in this area.'
-            : 'A solid neighbourhood favourite worth visiting.',
+          concierge_tip: el.isGenericFallback 
+            ? 'Suggested as a nearby alternative.' 
+            : (score >= 90
+              ? 'Top local pick — highly rated by people in this area.'
+              : 'A solid neighbourhood favourite worth visiting.'),
           image       : getCuisineImage(rawCuisine),
           lat         : elLat,
-          lon         : elLon
+          lon         : elLon,
+          isGenericFallback: el.isGenericFallback || false
         };
       })
       .sort((a, b) => b.match_score - a.match_score);
@@ -330,9 +335,14 @@ const ChatBox = ({ userName, activeChatId, initialMessages, onUpdateSession }) =
 
         // Replace the searching message with results
         const chatTitle = keyword.charAt(0).toUpperCase() + keyword.slice(1, 20);
-        const resultMsg = restaurants.length > 0
-          ? `Here are the best "${keyword}" spots near you, ranked by relevance! 📍`
-          : `I couldn't find "${keyword}" spots nearby. Try a broader search!`;
+        let resultMsg = `I couldn't find any spots nearby.`;
+        if (restaurants.length > 0) {
+          if (restaurants[0].isGenericFallback) {
+             resultMsg = `I couldn't find exact matches for "${keyword}" in the local map data, but here are some popular nearby spots you might like! 📍`;
+          } else {
+             resultMsg = `Here are the best "${keyword}" spots near you, ranked by relevance! 📍`;
+          }
+        }
 
         const final = [...withUser, { id: Date.now() + 2, sender: 'bot', text: resultMsg, cards: restaurants }];
         setMessages(final);
@@ -368,9 +378,14 @@ Never make up restaurant names. Always use map_search for any food/location requ
               const { lat, lon } = await getUserLocation();
               const restaurants = await fetchNearbyRestaurants(keyword, lat, lon);
               const chatTitle = keyword.charAt(0).toUpperCase() + keyword.slice(1, 20);
-              const resultMsg = restaurants.length > 0
-                ? `Here are the best "${keyword}" spots near you! 📍`
-                : `I couldn't find "${keyword}" spots nearby.`;
+              let resultMsg = `I couldn't find any spots nearby.`;
+              if (restaurants.length > 0) {
+                if (restaurants[0].isGenericFallback) {
+                   resultMsg = `I couldn't find exact matches for "${keyword}" in the local map data, but here are some popular nearby spots! 📍`;
+                } else {
+                   resultMsg = `Here are the best "${keyword}" spots near you! 📍`;
+                }
+              }
               pushBot(withUser, resultMsg, restaurants, chatTitle);
             }
           }
