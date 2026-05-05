@@ -157,6 +157,9 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
     .split(' ')
     .filter(w => w.length > 2 && !['restaurant','food','eat','eating'].includes(w));
 
+  const isSpecific = terms.length > 0;
+  let queryBody = '';
+
   if (isSpecific) {
     const fullRegex = terms.join('.*');
     queryBody = `
