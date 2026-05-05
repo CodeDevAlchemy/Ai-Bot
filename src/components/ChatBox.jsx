@@ -23,6 +23,7 @@ const FOOD_TERMS = [
   'vegetarian','vegan','halal','chicken','mutton','fish','seafood','dhaba',
   'hotel','eatery','joint','place to eat','places to eat','spot','spots',
   'near me','nearby','around','local','close by','in my area','in my city',
+  'oven','express','bakery','confectionery','sweets',
 ];
 
 const isFoodQuery = (msg) => {
@@ -347,30 +348,38 @@ Never make up restaurant names. Always use map_search for any food/location requ
         const output = await callAI(systemPrompt, buildHistory(messages), userMsg);
 
         // Check if AI returned a map_search JSON anywhere in the output
+        let searchTriggered = false;
         try {
-          const jsonMatch = output.match(/\{[\s\S]*"map_search"[\s\S]*\}/);
+          // Clean output: replace smart quotes and handle markdown
+          const sanitized = output
+            .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+            .replace(/[\u2018\u2019]/g, "'"); // Smart single quotes
+
+          const jsonMatch = sanitized.match(/\{[\s\S]*"map_search"[\s\S]*\}/);
           if (jsonMatch) {
             const clean = jsonMatch[0].trim();
             const parsed = JSON.parse(clean);
             if (parsed.map_search) {
+              searchTriggered = true;
               const keyword = parsed.map_search;
               const { lat, lon } = await getUserLocation();
               const restaurants = await fetchNearbyRestaurants(keyword, lat, lon);
               const chatTitle = keyword.charAt(0).toUpperCase() + keyword.slice(1, 20);
               const resultMsg = restaurants.length > 0
                 ? `Here are the best "${keyword}" spots near you! 📍`
-                : `Couldn't find "${keyword}" spots nearby.`;
+                : `I couldn't find "${keyword}" spots nearby.`;
               pushBot(withUser, resultMsg, restaurants, chatTitle);
-              return;
             }
           }
         } catch (e) {
-          console.warn('JSON parse fallback failed:', e);
+          console.warn('AI Response Parsing failed:', e, output);
         }
 
-        // Plain conversational response
-        const chatTitle = userMsg.slice(0, 20);
-        pushBot(withUser, output, [], chatTitle);
+        // Only show plain text if no search was triggered
+        if (!searchTriggered) {
+          const chatTitle = userMsg.slice(0, 20);
+          pushBot(withUser, output, [], chatTitle);
+        }
       }
 
     } catch (err) {
