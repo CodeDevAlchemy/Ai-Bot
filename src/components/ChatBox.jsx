@@ -346,23 +346,27 @@ Never make up restaurant names. Always use map_search for any food/location requ
 
         const output = await callAI(systemPrompt, buildHistory(messages), userMsg);
 
-        // Check if AI returned a map_search JSON
+        // Check if AI returned a map_search JSON anywhere in the output
         try {
-          const clean  = output.replace(/^```json/, '').replace(/```$/, '').trim();
-          const parsed = JSON.parse(clean);
-          if (parsed.map_search) {
-            // AI decided it needs a map search
-            const keyword = parsed.map_search;
-            const { lat, lon }  = await getUserLocation();
-            const restaurants   = await fetchNearbyRestaurants(keyword, lat, lon);
-            const chatTitle     = keyword.charAt(0).toUpperCase() + keyword.slice(1, 20);
-            const resultMsg     = restaurants.length > 0
-              ? `Here are the best "${keyword}" spots near you! 📍`
-              : `Couldn't find "${keyword}" spots nearby.`;
-            pushBot(withUser, resultMsg, restaurants, chatTitle);
-            return;
+          const jsonMatch = output.match(/\{[\s\S]*"map_search"[\s\S]*\}/);
+          if (jsonMatch) {
+            const clean = jsonMatch[0].trim();
+            const parsed = JSON.parse(clean);
+            if (parsed.map_search) {
+              const keyword = parsed.map_search;
+              const { lat, lon } = await getUserLocation();
+              const restaurants = await fetchNearbyRestaurants(keyword, lat, lon);
+              const chatTitle = keyword.charAt(0).toUpperCase() + keyword.slice(1, 20);
+              const resultMsg = restaurants.length > 0
+                ? `Here are the best "${keyword}" spots near you! 📍`
+                : `Couldn't find "${keyword}" spots nearby.`;
+              pushBot(withUser, resultMsg, restaurants, chatTitle);
+              return;
+            }
           }
-        } catch { /* not JSON, treat as plain text */ }
+        } catch (e) {
+          console.warn('JSON parse fallback failed:', e);
+        }
 
         // Plain conversational response
         const chatTitle = userMsg.slice(0, 20);
