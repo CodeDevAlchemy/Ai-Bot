@@ -162,11 +162,15 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
   if (isSpecific) {
     const regex = terms[0];
     queryBody = `
-      node["amenity"~"restaurant|cafe|fast_food|food_court"]["name"~"${regex}",i](around:${radius},${lat},${lon});
-      node["amenity"~"restaurant|cafe|fast_food|food_court"]["cuisine"~"${regex}",i](around:${radius},${lat},${lon});
+      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli"]["name"~"${regex}",i](around:${radius},${lat},${lon});
+      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli"]["cuisine"~"${regex}",i](around:${radius},${lat},${lon});
+      nwr["shop"~"bakery|confectionery|pastry|deli"]["name"~"${regex}",i](around:${radius},${lat},${lon});
     `;
   } else {
-    queryBody = `node["amenity"~"restaurant|cafe|fast_food|food_court"](around:${radius},${lat},${lon});`;
+    queryBody = `
+      nwr["amenity"~"restaurant|cafe|fast_food|food_court|ice_cream|bakery|bar|pub|deli"](around:${radius},${lat},${lon});
+      nwr["shop"~"bakery|confectionery|pastry|deli"](around:${radius},${lat},${lon});
+    `;
   }
 
   const query = `[out:json][timeout:15];(${queryBody});out center 50;`;
@@ -177,7 +181,7 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
 
     // Fallback: fetch all nearby + filter locally if no specific results found
     if (results.length === 0 && isSpecific) {
-      const fb = `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|fast_food"](around:${radius},${lat},${lon}););out center 150;`;
+      const fb = `[out:json][timeout:15];(nwr["amenity"~"restaurant|cafe|fast_food|bakery|ice_cream|bar|pub"](around:${radius},${lat},${lon});nwr["shop"~"bakery|deli"](around:${radius},${lat},${lon}););out center 150;`;
       const fbData = await fetchWithRetry(fb);
       const fbElements = fbData.elements || [];
       results = fbElements.filter(el => {
@@ -193,8 +197,8 @@ const fetchNearbyRestaurants = async (keyword, lat, lon) => {
       .slice(0, 5)
       .map(el => {
         const tags       = el.tags || {};
-        const rawCuisine = tags.cuisine ? tags.cuisine.replace(/;/g, ', ') : 'Restaurant';
-        const display    = rawCuisine.split(',')[0].trim();
+        const rawCuisine = tags.cuisine || tags.amenity || tags.shop || 'Restaurant';
+        const display    = rawCuisine.replace(/_/g, ' ').split(';')[0].trim();
         const elLat      = el.lat || el.center?.lat || lat;
         const elLon      = el.lon || el.center?.lon || lon;
         const score      = computeMatchScore(tags, keyword);
